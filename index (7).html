@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Questionario su opere partecipative</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Georgia,"Times New Roman",serif;background:#f6f3ee;color:#222;display:flex;min-height:100vh;align-items:center;justify-content:center}
+  .box{max-width:440px;width:100%;padding:32px 24px;text-align:center}
+  h1{font-size:20px;font-weight:normal;margin:0 0 24px;color:#555}
+  .num{font-family:Menlo,Consolas,"Courier New",monospace;font-size:44px;letter-spacing:6px;background:#fff;border:1px solid #ddd;border-radius:10px;padding:18px 10px;margin:8px 0 16px}
+  p{font-size:17px;line-height:1.5;margin:0 0 16px}
+  .piccolo{font-size:14px;color:#777}
+  .btn{display:inline-block;background:#1f3a5f;color:#fff;border:0;border-radius:8px;padding:15px 24px;font-size:18px;text-decoration:none;font-family:inherit;cursor:pointer}
+  input{font-family:Menlo,Consolas,"Courier New",monospace;font-size:28px;letter-spacing:4px;text-align:center;width:230px;max-width:100%;padding:10px;border:1px solid #bbb;border-radius:8px;text-transform:uppercase;margin-bottom:14px}
+  .link{display:block;margin-top:20px;color:#1f3a5f;font-size:15px}
+  .avviso{color:#a33;font-size:15px}
+</style>
+</head>
+<body>
+<div class="box" id="box"><p>Caricamento…</p></div>
+<script>
+// ── Link ai moduli Google (ZZZZZZ viene sostituito dal numero partecipante) ──
+const URL_PRE  = "https://docs.google.com/forms/d/e/1FAIpQLSeIDOYBxu64uQRlIZVV1-gfuPqE5vII25OlvN40aD7Wml2bZQ/viewform?usp=pp_url&entry.1920805177=ZZZZZZ";
+const URL_POST = "https://docs.google.com/forms/d/e/1FAIpQLSdrFzgMrhpD67j6p-grYw-cHvWZGBAHsUrVjxr9P3TEzZ2_GA/viewform?usp=pp_url&entry.2089434041=ZZZZZZ";
+const TITOLO = "Questionario su opere partecipative";
+const CHIAVE = "opere_partecipative_numero";
+const SEGNAPOSTO = "ZZZZZZ";
+const ALFABETO = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+
+const fase = new URLSearchParams(location.search).get("fase") === "dopo" ? "dopo" : "prima";
+const box = document.getElementById("box");
+
+function genera(){
+  const r = new Uint32Array(6);
+  crypto.getRandomValues(r);
+  return Array.from(r, x => ALFABETO[x % ALFABETO.length]).join("");
+}
+function leggi(){ try { return localStorage.getItem(CHIAVE); } catch(e) { return null; } }
+function salva(v){ try { localStorage.setItem(CHIAVE, v); return localStorage.getItem(CHIAVE) === v; } catch(e) { return false; } }
+function link(base, n){ return base.replace(SEGNAPOSTO, encodeURIComponent(n)); }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function mostra(n, base, testo, avviso){
+  box.innerHTML =
+    '<h1>' + TITOLO + '</h1>' +
+    '<p>' + testo + '</p>' +
+    '<div class="num">' + esc(n) + '</div>' +
+    (avviso ? '<p class="avviso">' + avviso + '</p>'
+            : '<p class="piccolo">Per sicurezza puoi fare uno screenshot di questa pagina.</p>') +
+    '<a class="btn" href="' + esc(link(base, n)) + '">Apri il questionario</a>';
+}
+
+if (fase === "prima") {
+  let n = leggi();
+  const nuovo = !n;
+  if (!n) n = genera();
+  const ok = salva(n);
+  mostra(n, URL_PRE,
+    nuovo ? "Questo è il tuo numero partecipante. Il telefono lo ricorderà fino alla fine."
+          : "Questo telefono ha già un numero partecipante: useremo lo stesso.",
+    ok ? "" : "Il tuo browser non riesce a ricordare il numero (forse sei in navigazione privata). Fai uno screenshot: alla fine ti servirà.");
+} else {
+  const n = leggi();
+  if (n) {
+    mostra(n, URL_POST, "Bentornato! Questo è il tuo numero partecipante, lo stesso dell'inizio.", "");
+  } else {
+    box.innerHTML =
+      '<h1>' + TITOLO + '</h1>' +
+      '<p>Non troviamo il tuo numero su questo telefono. Se l’hai annotato o hai uno screenshot, scrivilo qui:</p>' +
+      '<input id="in" maxlength="6" autocomplete="off" autocapitalize="characters"><br>' +
+      '<button class="btn" id="vai">Continua</button>' +
+      '<p class="avviso" id="err"></p>' +
+      '<a class="link" href="' + esc(link(URL_POST, "")) + '">Non ho il numero: compila comunque</a>';
+    document.getElementById("vai").onclick = () => {
+      const v = document.getElementById("in").value.trim().toUpperCase();
+      if (!/^[2-9A-Z]{6}$/.test(v)) {
+        document.getElementById("err").textContent = "Il numero è di 6 caratteri, ad esempio K7M4QX.";
+        return;
+      }
+      salva(v);
+      location.href = link(URL_POST, v);
+    };
+  }
+}
+</script>
+</body>
+</html>
